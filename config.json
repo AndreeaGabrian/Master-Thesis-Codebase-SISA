@@ -1,0 +1,14 @@
+{
+  "device": "cuda",
+  "data_dir": "data/HAM10000",
+  "num_classes": 7,
+  "num_shards": 5,
+  "num_slices": 3,
+
+  "batch_size": 64,
+  "num_epochs_per_slice": 3,
+  "learning_rate": 0.0001,
+
+  "model_name": "resnet18",
+  "pretrained": true
+}
