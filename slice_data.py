@@ -9,6 +9,7 @@ from utils import set_seed
 from model import build_model
 from sklearn.model_selection import StratifiedKFold
 from torchvision import datasets, transforms
+from utils import transform_and_load_dataset
 
 # Read config file
 with open("config.json") as f:
@@ -29,15 +30,8 @@ SEED = 42
 set_seed(SEED)
 
 
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-])
-
-# load the full ImageFolder again
-dataset = datasets.ImageFolder(DATA_DIR, transform=transform)
+# load the full ImageFolder
+dataset = transform_and_load_dataset(DATA_DIR)
 
 # extract labels for stratification
 labels = [label for _, label in dataset.imgs]
@@ -50,6 +44,7 @@ train_indices, test_indices = train_test_split(
     random_state=SEED
 )
 
+
 def get_image_ids(indices, dataset):
     ids = []
     for i in indices:
@@ -61,8 +56,9 @@ def get_image_ids(indices, dataset):
         ids.append(img_id)
     return ids
 
+
 train_ids = get_image_ids(train_indices, dataset)
-test_ids  = get_image_ids(test_indices, dataset)
+test_ids = get_image_ids(test_indices, dataset)
 
 # train_dataset = Subset(dataset, train_indices)
 # test_dataset = Subset(dataset, test_indices)

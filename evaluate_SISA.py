@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader, Subset
 import torch.nn.functional as F
 from model import build_model
 from sklearn.metrics import accuracy_score, classification_report
-
+from utils import transform_and_load_dataset, map_indices
 
 # Config
 DATA_DIR = "data/HAM10000"
@@ -22,19 +22,14 @@ transform = transforms.Compose([
 ])
 
 # Full dataset
-dataset = datasets.ImageFolder(DATA_DIR, transform=transform)
+dataset = transform_and_load_dataset(DATA_DIR)
 
 # Load test image IDs
 with open("checkpoints/test_indices.json") as f:
     test_ids = json.load(f)
 
 # Map image ID → dataset index
-id_to_idx = {}
-for idx, (path, _) in enumerate(dataset.imgs):
-    basename = os.path.basename(path)
-    name, _ = os.path.splitext(basename)
-    img_id = int(name.split('_')[-1])
-    id_to_idx[img_id] = idx
+id_to_idx = map_indices(dataset)
 
 # Create test indices from IDs
 test_indices = [id_to_idx[i] for i in test_ids]
