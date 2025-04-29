@@ -1,17 +1,14 @@
 import os
 import json
-import random
-import numpy as np
 from collections import defaultdict
-from model import build_model
+from architecture.model import build_model
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Subset
-from torchvision import datasets, transforms
-from utils import set_seed, map_indices, transform_and_load_dataset
+from utils.utils import set_seed, transform_and_load_dataset
 
-with open("config.json") as f:
+with open("../utils/config.json") as f:
     cfg = json.load(f)
 
 # Device setup
@@ -42,7 +39,7 @@ set_seed(SEED)
 
 def load_train_data():
     # Load idx_to_loc
-    with open("checkpoints/idx_to_loc_train.json") as f:
+    with open("../checkpoints/idx_to_loc_train.json") as f:
         idx_to_loc = json.load(f)
 
     dataset = transform_and_load_dataset(DATA_DIR)

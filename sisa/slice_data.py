@@ -2,17 +2,13 @@ import json
 import os
 from sklearn.model_selection import train_test_split
 import torch
-from torch.utils.data import DataLoader, Subset, ConcatDataset
-import torch.optim as optim
-import torch.nn as nn
-from utils import set_seed
-from model import build_model
+from torch.utils.data import Subset
+from utils.utils import set_seed
 from sklearn.model_selection import StratifiedKFold
-from torchvision import datasets, transforms
-from utils import transform_and_load_dataset
+from utils.utils import transform_and_load_dataset
 
 # Read config file
-with open("config.json") as f:
+with open("../utils/config.json") as f:
     cfg = json.load(f)
 
 # Device setup
@@ -64,10 +60,10 @@ test_ids = get_image_ids(test_indices, dataset)
 # test_dataset = Subset(dataset, test_indices)
 
 # Save split indices
-os.makedirs("checkpoints", exist_ok=True)
-with open("checkpoints/train_indices.json", "w") as f:
+os.makedirs("../checkpoints", exist_ok=True)
+with open("../checkpoints/train_indices.json", "w") as f:
     json.dump(train_ids, f)
-with open("checkpoints/test_indices.json", "w") as f:
+with open("../checkpoints/test_indices.json", "w") as f:
     json.dump(test_ids, f)
 
 # do SISA shard/slice processing only on training set
@@ -113,7 +109,7 @@ for k, (_, shard_idx) in enumerate(skf.split(train_indices, train_labels)):
     shards.append(slices)
 
 # Save the mapping for the unlearning step
-os.makedirs("checkpoints", exist_ok=True)
-with open("checkpoints/idx_to_loc_train.json", "w") as f:
+os.makedirs("../checkpoints", exist_ok=True)
+with open("../checkpoints/idx_to_loc_train.json", "w") as f:
     json.dump(idx_to_loc, f)
 print(f"Created {NUM_SHARDS} shards each with {NUM_SLICES} slices.")

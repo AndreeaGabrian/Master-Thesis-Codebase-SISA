@@ -1,15 +1,14 @@
-import os
 import json
 import torch
-from torchvision import datasets, transforms
+from torchvision import transforms
 from torch.utils.data import DataLoader, Subset
 import torch.nn.functional as F
-from model import build_model
+from architecture.model import build_model
 from sklearn.metrics import accuracy_score, classification_report
 from utils import transform_and_load_dataset, map_indices
 
 # Config
-DATA_DIR = "data/HAM10000"
+DATA_DIR = "../data/HAM10000"
 BATCH_SIZE = 64
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -25,7 +24,7 @@ transform = transforms.Compose([
 dataset = transform_and_load_dataset(DATA_DIR)
 
 # Load test image IDs
-with open("checkpoints/test_indices.json") as f:
+with open("../checkpoints/test_indices.json") as f:
     test_ids = json.load(f)
 
 # Map image ID → dataset index

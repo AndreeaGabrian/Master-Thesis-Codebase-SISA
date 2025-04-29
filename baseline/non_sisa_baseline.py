@@ -5,11 +5,11 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.utils.data import Subset, DataLoader
-from model import build_model
+from architecture.model import build_model
 from utils import set_seed, map_indices
 
 # --- Load config
-with open("config.json") as f:
+with open("../utils/config.json") as f:
     cfg = json.load(f)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -22,7 +22,7 @@ LEARNING_RATE = cfg["learning_rate"]
 MODEL_NAME = cfg["model_name"]
 PRETRAINED = cfg["pretrained"]
 
-# 🧠 Match total training work from SISA
+# Match total training work from SISA
 TOTAL_EPOCHS = cfg["num_slices"] * cfg["num_epochs_per_slice"]
 
 # --- Reproducibility
@@ -30,7 +30,7 @@ SEED = 42
 set_seed(SEED)
 
 # --- Load train IDs
-with open("checkpoints/train_indices.json") as f:
+with open("../checkpoints/train_indices.json") as f:
     train_ids = json.load(f)
 
 # --- Load dataset
@@ -43,7 +43,7 @@ transform = transforms.Compose([
 full_dataset = datasets.ImageFolder(DATA_DIR, transform=transform)
 
 # --- Map img_id to index
-id_to_idx = map_indices()
+id_to_idx = map_indices(full_dataset)
 
 
 # --- Build train dataset
@@ -76,6 +76,6 @@ for epoch in range(TOTAL_EPOCHS):
     print(f"Epoch {epoch+1} done — Avg loss: {avg_loss:.4f}")
 
 # --- Save monolithic model
-os.makedirs("checkpoints/monolith_non_sisa", exist_ok=True)
-torch.save(model.state_dict(), "checkpoints/monolith_non_sisa/final_model.pt")
+os.makedirs("../checkpoints/monolith_non_sisa", exist_ok=True)
+torch.save(model.state_dict(), "../checkpoints/monolith_non_sisa/final_model.pt")
 print("Monolithic non-sisa model saved to checkpoints/monolith_non_sisa/final_model.pt")
