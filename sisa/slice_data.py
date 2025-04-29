@@ -8,7 +8,7 @@ from sklearn.model_selection import StratifiedKFold
 from utils.utils import transform_and_load_dataset
 
 # Read config file
-with open("../utils/config.json") as f:
+with open("utils/config.json") as f:
     cfg = json.load(f)
 
 # Device setup
@@ -98,18 +98,18 @@ for k, (_, shard_idx) in enumerate(skf.split(train_indices, train_labels)):
 
         for local_pos in range(start, end):
             global_idx = shard.indices[local_pos]
-            img_path, _ = dataset.imgs[global_idx]
+            img_path, label = dataset.imgs[global_idx]  # get class label here
             basename = os.path.basename(img_path)
             name, _ = os.path.splitext(basename)
             num_str = name.split('_')[-1]
             img_id = int(num_str)
 
-            idx_to_loc[img_id] = [k, r]
+            idx_to_loc[img_id] = [k, r, label]
 
     shards.append(slices)
 
 # Save the mapping for the unlearning step
-os.makedirs("../checkpoints", exist_ok=True)
-with open("../checkpoints/idx_to_loc_train.json", "w") as f:
+os.makedirs("checkpoints", exist_ok=True)
+with open("checkpoints/idx_to_loc_train.json", "w") as f:
     json.dump(idx_to_loc, f)
 print(f"Created {NUM_SHARDS} shards each with {NUM_SLICES} slices.")
