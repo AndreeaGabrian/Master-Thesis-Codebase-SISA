@@ -1,4 +1,3 @@
-import os
 import json
 import torch
 import torch.nn.functional as F
@@ -7,10 +6,10 @@ from torch.utils.data import DataLoader, Subset
 from sklearn.metrics import accuracy_score, classification_report
 from utils import map_indices
 
-from model import build_model
+from architecture.model import build_model
 
 # --- Load config
-with open("config.json") as f:
+with open("../utils/config.json") as f:
     cfg = json.load(f)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -19,7 +18,7 @@ NUM_CLASSES = cfg["num_classes"]
 BATCH_SIZE = cfg["batch_size"]
 
 # --- Load test IDs
-with open("checkpoints/test_indices.json") as f:
+with open("../checkpoints/test_indices.json") as f:
     test_ids = json.load(f)
 
 # --- Load dataset
@@ -42,7 +41,7 @@ test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
 # --- Load baseline model
 model = build_model(model_name=cfg["model_name"], num_classes=NUM_CLASSES, pretrained=False)
-model.load_state_dict(torch.load("checkpoints/monolith_non_sisa/final_model.pt"))
+model.load_state_dict(torch.load("../checkpoints/monolith_non_sisa/final_model.pt"))
 model.to(DEVICE)
 model.eval()
 

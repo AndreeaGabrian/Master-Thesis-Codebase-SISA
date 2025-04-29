@@ -2,8 +2,8 @@ import os
 import shutil
 import pandas as pd
 
-RAW_DIR = "raw/ham10000"
-DATA_DIR = "data/HAM10000"
+RAW_DIR = "../raw/ham10000"
+DATA_DIR = "../data/HAM10000"
 
 meta = pd.read_csv("raw/HAM10000_metadata.csv")
 classes = sorted(meta['dx'].unique())
