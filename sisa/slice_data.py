@@ -75,6 +75,7 @@ def get_image_ids(indices, dataset):
 
 train_ids = get_image_ids(train_indices, dataset)
 test_ids = get_image_ids(test_indices, dataset)
+val_ids = get_image_ids(val_indices, dataset)
 
 # train_dataset = Subset(dataset, train_indices)
 # test_dataset = Subset(dataset, test_indices)
@@ -85,6 +86,8 @@ with open("../checkpoints/train_indices.json", "w") as f:
     json.dump(train_ids, f)
 with open("../checkpoints/test_indices.json", "w") as f:
     json.dump(test_ids, f)
+with open("../checkpoints/validation_indices.json", "w") as f:
+    json.dump(val_ids, f)
 
 # do SISA shard/slice processing only on training set
 # Data structures to hold:
