@@ -33,10 +33,30 @@ dataset = transform_and_load_dataset(DATA_DIR)
 labels = [label for _, label in dataset.imgs]
 indices = list(range(len(dataset)))
 
-train_indices, test_indices = train_test_split(
+# train_indices, test_indices = train_test_split(
+#     indices,
+#     test_size=0.2,
+#     stratify=labels,
+#     random_state=SEED
+# )
+
+
+# split in train and temp (val + test)
+train_indices, temp_indices, train_labels, temp_labels = train_test_split(
     indices,
-    test_size=0.2,
+    labels,
+    test_size=0.3,
     stratify=labels,
+    random_state=SEED
+)
+
+# split temp into val and test (10% + 20%)
+val_ratio = 0.1 / (0.1 + 0.2)
+
+val_indices, test_indices = train_test_split(
+    temp_indices,
+    test_size=1 - val_ratio,
+    stratify=temp_labels,
     random_state=SEED
 )
 
@@ -71,7 +91,7 @@ with open("../checkpoints/test_indices.json", "w") as f:
 #  - shards[k] = list of Subset objects (one Subset per slice)
 #  - idx_to_loc[i] = (shard_k, slice_r) for every global index i
 
-train_labels = [labels[i] for i in train_indices]
+# train_labels = [labels[i] for i in train_indices]
 shards = []
 idx_to_loc = {}
 
