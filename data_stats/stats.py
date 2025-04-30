@@ -7,15 +7,10 @@ from collections import Counter
 import numpy as np
 from torch.utils.data import Subset
 from torchvision import datasets, transforms
-from utils.utils import map_indices
+from utils.utils import map_indices, get_transform
 
 # Load dataset again (if needed)
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                         std=[0.229, 0.224, 0.225]),
-])
+transform = get_transform()
 
 DATA_DIR = "../data/HAM10000"
 dataset = datasets.ImageFolder(DATA_DIR, transform=transform)

@@ -5,20 +5,31 @@ from torch.utils.data import DataLoader, Subset
 import torch.nn.functional as F
 from architecture.model import build_model
 from sklearn.metrics import accuracy_score, classification_report
-from utils import transform_and_load_dataset, map_indices
+from utils.utils import transform_and_load_dataset, map_indices, get_transform
 
 # Config
-DATA_DIR = "../data/HAM10000"
-BATCH_SIZE = 64
+with open("../utils/config.json") as f:
+    cfg = json.load(f)
+
+# paths & SISA params
+DATA_DIR = cfg["data_dir"]
+NUM_CLASSES = cfg["num_classes"]
+NUM_SHARDS = cfg["num_shards"]
+NUM_SLICES = cfg["num_slices"]
+
+# training hyperparams
+BATCH_SIZE = cfg["batch_size"]
+NUM_EPOCHS_PER_SLICE = cfg["num_epochs_per_slice"]
+LEARNING_RATE = cfg["learning_rate"]
+
+# model
+MODEL_NAME = cfg["model_name"]
+PRETRAINED = cfg["pretrained"]
+
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Same transforms as training
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                         std=[0.229, 0.224, 0.225]),
-])
+transform = get_transform()
 
 # Full dataset
 dataset = transform_and_load_dataset(DATA_DIR)
@@ -40,15 +51,10 @@ test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 print(f"Loaded test set with {len(test_dataset)} samples.")
 
 
-# ------------------ LOAD MODEL SHARDS -------------
-NUM_SHARDS = 5
-NUM_CLASSES = 7
-
 # Load the last slice checkpoint for each shard
 models = []
-
 for k in range(NUM_SHARDS):
-    model = build_model(model_name="resnet18", num_classes=NUM_CLASSES, pretrained=False)
+    model = build_model(model_name=MODEL_NAME, num_classes=NUM_CLASSES, pretrained=False)
     model.load_state_dict(torch.load(f"checkpoints/shard_{k}/slice_{2}.pt"))  # last slice = 2 if 3 slices total
     model.to(DEVICE)
     model.eval()

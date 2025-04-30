@@ -23,14 +23,18 @@ def map_indices(dataset):
     return id_to_idx
 
 
-def transform_and_load_dataset(data_dir):
+def get_transform():
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
+    return transform
 
+
+def transform_and_load_dataset(data_dir):
+    transform = get_transform()
     # load the full ImageFolder again
     dataset = datasets.ImageFolder(data_dir, transform=transform)
     return dataset

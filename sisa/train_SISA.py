@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Subset
-from utils.utils import set_seed, transform_and_load_dataset
+from utils.utils import set_seed, transform_and_load_dataset, get_transform
 
 with open("../utils/config.json") as f:
     cfg = json.load(f)
@@ -61,29 +61,43 @@ def make_shard_slice_groups(idx_to_loc, dataset):
     return groups
 
 
-def train_sisa_slice_union():
+def train_sisa(strategy="union"):
     """
+    Strategy = union (default)
     This is how SISA was trained in the original paper, by unioning the slices from one shard
     Like training is done on slice 0, then 0+1, then 0+1+2 and so on
+
+    Strategy = no-union
+    Extended SISA by not unioning the slices. The weights from previous slices are used, but data is
+    not repeated (unioned)
     """
     idx_to_loc, dataset = load_train_data()
     groups = make_shard_slice_groups(idx_to_loc, dataset)
 
     criterion = nn.CrossEntropyLoss()
     for k in range(NUM_SHARDS):
-        print(f"\nTraining shard {k}")
+        print(f"\nTraining shard {k} with strategy: {strategy}")
         model = build_model(model_name="resnet18", num_classes=NUM_CLASSES, pretrained=True).to(DEVICE)
         optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
         for r in range(NUM_SLICES):
-            print(f"Slice {r}")
-            # Union of all slices from 0 to r
-            indices = []
-            for r_ in range(r + 1):
-                indices.extend(groups.get((k, r_), []))
-            loader = DataLoader(Subset(dataset, indices), batch_size=BATCH_SIZE, shuffle=True)
-            print(f"Slice {r} | Epochs: {NUM_EPOCHS_PER_SLICE}")
 
+            if strategy == "union":
+                print(f"Slice {r} union | Epochs: {NUM_EPOCHS_PER_SLICE}")
+                # Union of all slices from 0 to r
+                indices = []
+                for r_ in range(r + 1):
+                    indices.extend(groups.get((k, r_), []))
+
+            elif strategy == "no-union":
+                print(f"Slice {r} (non-union) | Epochs: {NUM_EPOCHS_PER_SLICE}")
+                # Only the current slice, without union
+                indices = groups.get((k, r), [])
+
+            else:
+                raise Exception("Unimplemented strategy. Options: union | no-union")
+
+            loader = DataLoader(Subset(dataset, indices), batch_size=BATCH_SIZE, shuffle=True)
             model.train()
             for epoch in range(NUM_EPOCHS_PER_SLICE):
                 total_loss = 0.0
