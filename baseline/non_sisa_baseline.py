@@ -6,7 +6,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.utils.data import Subset, DataLoader
 from architecture.model import build_model
-from utils import set_seed, map_indices
+from utils.utils import set_seed, map_indices, get_transform
 
 # --- Load config
 with open("../utils/config.json") as f:
@@ -34,12 +34,7 @@ with open("../checkpoints/train_indices.json") as f:
     train_ids = json.load(f)
 
 # --- Load dataset
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                         std=[0.229, 0.224, 0.225]),
-])
+transform = get_transform()
 full_dataset = datasets.ImageFolder(DATA_DIR, transform=transform)
 
 # --- Map img_id to index
@@ -77,5 +72,5 @@ for epoch in range(TOTAL_EPOCHS):
 
 # --- Save monolithic model
 os.makedirs("../checkpoints/monolith_non_sisa", exist_ok=True)
-torch.save(model.state_dict(), "../checkpoints/monolith_non_sisa/final_model.pt")
-print("Monolithic non-sisa model saved to checkpoints/monolith_non_sisa/final_model.pt")
+torch.save(model.state_dict(), f"../checkpoints/monolith_non_sisa/final_model_{MODEL_NAME}.pt")
+print(f"Monolithic non-sisa model saved to checkpoints/monolith_non_sisa/final_model_{MODEL_NAME}.pt")
