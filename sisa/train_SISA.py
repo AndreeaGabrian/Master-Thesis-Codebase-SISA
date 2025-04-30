@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Subset
-from utils.utils import set_seed, transform_and_load_dataset
+from utils.utils import set_seed, transform_and_load_dataset, get_transform
 
 with open("../utils/config.json") as f:
     cfg = json.load(f)

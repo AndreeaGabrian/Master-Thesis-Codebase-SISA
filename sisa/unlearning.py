@@ -6,7 +6,7 @@ from torch.utils.data import Subset, DataLoader
 import torch.nn as nn
 import torch.optim as optim
 from architecture.model import build_model
-from utils.utils import map_indices
+from utils.utils import map_indices, get_transform
 from torchvision import datasets, transforms
 
 
@@ -109,12 +109,7 @@ def unlearn(dataset, images=None, config_path="../utils/config.json", idx_to_loc
 
 
 # load full dataset
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                         std=[0.229, 0.224, 0.225]),
-])
+transform = get_transform()
 dataset = datasets.ImageFolder("../data/HAM10000", transform=transform)
 
 # test nlearn a single image
