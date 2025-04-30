@@ -77,16 +77,14 @@ train_ids = get_image_ids(train_indices, dataset)
 test_ids = get_image_ids(test_indices, dataset)
 val_ids = get_image_ids(val_indices, dataset)
 
-# train_dataset = Subset(dataset, train_indices)
-# test_dataset = Subset(dataset, test_indices)
 
 # Save split indices
-os.makedirs("../checkpoints", exist_ok=True)
-with open("../checkpoints/train_indices.json", "w") as f:
+os.makedirs("checkpoints", exist_ok=True)
+with open("checkpoints/train_indices.json", "w") as f:
     json.dump(train_ids, f)
-with open("../checkpoints/test_indices.json", "w") as f:
+with open("checkpoints/test_indices.json", "w") as f:
     json.dump(test_ids, f)
-with open("../checkpoints/validation_indices.json", "w") as f:
+with open("checkpoints/validation_indices.json", "w") as f:
     json.dump(val_ids, f)
 
 # do SISA shard/slice processing only on training set
