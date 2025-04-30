@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from architecture.model import build_model
 from sklearn.metrics import accuracy_score, classification_report
 from utils.utils import transform_and_load_dataset, map_indices, get_transform
+from collections import defaultdict
 
 # Config
 with open("../utils/config.json") as f:
@@ -38,15 +39,25 @@ dataset = transform_and_load_dataset(DATA_DIR)
 with open("../checkpoints/test_indices.json") as f:
     test_ids = json.load(f)
 
+# Load test image IDs
+with open("../checkpoints/validation_indices.json") as f:
+    validation_ids = json.load(f)
+
 # Map image ID → dataset index
 id_to_idx = map_indices(dataset)
 
-# Create test indices from IDs
+# Create test and validation indices from IDs
 test_indices = [id_to_idx[i] for i in test_ids]
+validation_indices = [id_to_idx[i] for i in validation_ids]
 
 # Create test dataset
 test_dataset = Subset(dataset, test_indices)
 test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+
+# Create validation dataset
+validation_dataset = Subset(dataset, validation_indices)
+validation_loader = DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False)
+
 
 print(f"Loaded test set with {len(test_dataset)} samples.")
 
@@ -64,6 +75,77 @@ print(f"Loaded {len(models)} shard models.")
 
 
 # ---------------- RUN INFERENCE AND AGGREGATE THE PREDICTIONS -------------------
+def get_accuracies_weights_validation(validation_loader):
+    shard_accuracies = []
+    for k, model in enumerate(models):
+        model.eval()
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for imgs, labels in validation_loader:
+                imgs, labels = imgs.to(DEVICE), labels.to(DEVICE)
+                outputs = model(imgs)
+                preds = outputs.argmax(dim=1)
+                correct += (preds == labels).sum().item()
+                total += labels.size(0)
+        acc = correct / total
+        shard_accuracies.append(acc)
+        # print(f"Shard {k} accuracy: {acc:.4f}")
+
+    total_acc = sum(shard_accuracies)
+    shard_weights = [acc / total_acc for acc in shard_accuracies]
+    return shard_weights
+
+
+def get_distribution_weights():
+    # load idx_to_loc
+    with open("../checkpoints/idx_to_loc_train.json") as f:
+        idx_to_loc = json.load(f)
+    # count how many samples are in each shard and give to that shard a weight proportional to number of samples
+    shard_counts = defaultdict(int)
+    for k, r, _ in idx_to_loc.values():
+        shard_counts[k] += 1
+    total = sum(shard_counts.values())
+    shard_weights = [shard_counts[k] / total for k in range(NUM_SHARDS)]
+    return shard_weights
+
+
+def aggregate_predictions(shard_outputs, strategy="soft"):
+    """
+    shard_outputs: list of [batch, num_classes] softmax probabilities
+    strategy: the strategy to aggregate the outputs. It can be "soft", "majority", "weighted-shards", "confidence-max"
+    shard_weights: optional list of weight for each shard if the aggregation strategy is "weighted-shards", length = num_shards
+    """
+    if strategy == "soft":  # soft vote, outputs are averaged
+        avg_probs = torch.stack(shard_outputs).mean(dim=0)
+        return avg_probs.argmax(dim=1)
+
+    elif strategy == "majority":  # majority vote, the final output is the majority best probability across shards
+        shard_preds = [p.argmax(dim=1) for p in shard_outputs]
+        shard_preds = torch.stack(shard_preds, dim=0)
+        preds, _ = torch.mode(shard_preds, dim=0)
+        return preds
+
+    elif strategy == "weighted-shards-acc":  # the shards with the higher accuracy will receive higher weights
+        shard_weights = get_accuracies_weights_validation(validation_loader)
+        weighted = sum(w * p for w, p in zip(shard_weights, shard_outputs))
+        return weighted.argmax(dim=1)
+
+    elif strategy == "weighted-shards-dist":  # the shards with more samples will receive higher weights
+        shard_weights = get_distribution_weights()
+        weighted = sum(w * p for w, p in zip(shard_weights, shard_outputs))
+        return weighted.argmax(dim=1)
+
+    elif strategy == "confidence-max":  # use only the prediction from the shards with the highes probability for that class
+        confidences = [p.max(dim=1).values for p in shard_outputs]  # shape [num_shards, batch]
+        best_shards = torch.stack(confidences).argmax(dim=0)        # shape [batch]
+        preds = torch.stack([p.argmax(dim=1) for p in shard_outputs])  # [num_shards, batch]
+        return preds.gather(0, best_shards.unsqueeze(0)).squeeze(0)
+
+    else:
+        raise NotImplementedError(f"Strategy '{strategy}' is not implemented.")
+
+
 all_preds = []
 all_labels = []
 
@@ -77,10 +159,8 @@ with torch.no_grad():
             prob = F.softmax(out, dim=1)  # probabilities
             shard_outputs.append(prob)
 
-        # Average softmax outputs across shards
-        avg_probs = torch.stack(shard_outputs).mean(dim=0)  # shape [batch, num_classes]
-
-        preds = avg_probs.argmax(dim=1)  # final prediction
+        # Aggregation step
+        preds = aggregate_predictions(shard_outputs, strategy="soft")
 
         all_preds.append(preds.cpu())
         all_labels.append(labels)
