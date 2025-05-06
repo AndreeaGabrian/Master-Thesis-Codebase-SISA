@@ -1,0 +1,16 @@
+Model: resnet18
+Test accuracy: 0.8249
+Per-Class Performance:               precision    recall  f1-score   support
+
+       akiec       0.90      0.43      0.58        65
+         bcc       0.73      0.73      0.73       103
+         bkl       0.63      0.68      0.65       220
+          df       1.00      0.23      0.37        22
+         mel       0.69      0.41      0.51       223
+          nv       0.87      0.96      0.91      1342
+        vasc       0.93      0.48      0.64        29
+
+    accuracy                           0.82      2004
+   macro avg       0.82      0.56      0.63      2004
+weighted avg       0.82      0.82      0.81      2004
+

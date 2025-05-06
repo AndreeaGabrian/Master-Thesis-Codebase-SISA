@@ -7,9 +7,11 @@ from torchvision import datasets, transforms
 from torch.utils.data import Subset, DataLoader
 from architecture.model import build_model
 from utils.utils import set_seed, map_indices, get_transform
+import time
+
 
 # --- Load config
-with open("../utils/config.json") as f:
+with open("utils/config.json") as f:
     cfg = json.load(f)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -30,7 +32,7 @@ SEED = 42
 set_seed(SEED)
 
 # --- Load train IDs
-with open("../checkpoints/train_indices.json") as f:
+with open("checkpoints/train_indices.json") as f:
     train_ids = json.load(f)
 
 # --- Load dataset
@@ -54,6 +56,7 @@ criterion = nn.CrossEntropyLoss()
 # --- Training Loop
 print(f"\n Training non-sisa monolithic model for {TOTAL_EPOCHS} epochs on {len(train_dataset)} samples")
 
+start_time = time.time()
 for epoch in range(TOTAL_EPOCHS):
     model.train()
     running_loss = 0.0
@@ -70,7 +73,20 @@ for epoch in range(TOTAL_EPOCHS):
     avg_loss = running_loss / len(train_loader.dataset)
     print(f"Epoch {epoch+1} done — Avg loss: {avg_loss:.4f}")
 
+# ---- stop counting time
+end_time = time.time()
+elapsed = end_time - start_time
+elapsed_str = time.strftime("%H:%M:%S", time.gmtime(elapsed))
+print(f"\nTotal training time: {elapsed_str}")
+
 # --- Save monolithic model
-os.makedirs("../checkpoints/monolith_non_sisa", exist_ok=True)
-torch.save(model.state_dict(), f"../checkpoints/monolith_non_sisa/final_model_{MODEL_NAME}.pt")
+os.makedirs("checkpoints/monolith_non_sisa", exist_ok=True)
+torch.save(model.state_dict(), f"checkpoints/monolith_non_sisa/final_model_{MODEL_NAME}.pt")
 print(f"Monolithic non-sisa model saved to checkpoints/monolith_non_sisa/final_model_{MODEL_NAME}.pt")
+
+# --- Save training log
+with open(f"checkpoints/monolith_non_sisa/training_log_{MODEL_NAME}.txt", "w") as f:
+    f.write(f"Model: {MODEL_NAME}\n")
+    f.write(f"Epochs: {TOTAL_EPOCHS}\n")
+    f.write(f"Samples: {len(train_dataset)}\n")
+    f.write(f"Total time: {elapsed:.2f} seconds ({elapsed_str})\n")

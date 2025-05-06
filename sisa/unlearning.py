@@ -10,7 +10,7 @@ from utils.utils import map_indices, get_transform
 from torchvision import datasets, transforms
 
 
-def unlearn(dataset, images=None, config_path="../utils/config.json", idx_to_loc_path="../checkpoints/idx_to_loc_train.json"):
+def unlearn(dataset, images=None, config_path="utils/config.json", idx_to_loc_path="checkpoints/idx_to_loc_train.json"):
     """
     Unlearn a specific image or a bach of images
     Parameters:
@@ -93,7 +93,7 @@ def unlearn(dataset, images=None, config_path="../utils/config.json", idx_to_loc
                     loss.backward()
                     optimizer.step()
             # save checkpoint
-            out_ckpt = f"../checkpoints/shard_{shard_k}/slice_{r}.pt"
+            out_ckpt = f"checkpoints/shard_{shard_k}/slice_{r}.pt"
             torch.save(model.state_dict(), out_ckpt)
             print(f"Updated checkpoint: {out_ckpt}")
 
@@ -110,7 +110,7 @@ def unlearn(dataset, images=None, config_path="../utils/config.json", idx_to_loc
 
 # load full dataset
 transform = get_transform()
-dataset = datasets.ImageFolder("../data/HAM10000", transform=transform)
+dataset = datasets.ImageFolder("data/HAM10000", transform=transform)
 
 # test nlearn a single image
 # print("Test 1")

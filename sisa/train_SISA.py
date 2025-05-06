@@ -7,8 +7,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Subset
 from utils.utils import set_seed, transform_and_load_dataset, get_transform
+import time
 
-with open("../utils/config.json") as f:
+with open("utils/config.json") as f:
     cfg = json.load(f)
 
 # Device setup
@@ -39,7 +40,7 @@ set_seed(SEED)
 
 def load_train_data():
     # Load idx_to_loc
-    with open("../checkpoints/idx_to_loc_train.json") as f:
+    with open("checkpoints/idx_to_loc_train.json") as f:
         idx_to_loc = json.load(f)
 
     dataset = transform_and_load_dataset(DATA_DIR)
@@ -55,7 +56,7 @@ def make_shard_slice_groups(idx_to_loc, dataset):
         basename = os.path.basename(path)
         img_id = int(os.path.splitext(basename)[0].split('_')[-1])
         if str(img_id) in idx_to_loc:
-            k, r = idx_to_loc[str(img_id)]
+            k, r, c = idx_to_loc[str(img_id)]
             groups[(k, r)].append(i)
 
     return groups
@@ -75,6 +76,8 @@ def train_sisa(strategy="union"):
     groups = make_shard_slice_groups(idx_to_loc, dataset)
 
     criterion = nn.CrossEntropyLoss()
+
+    start_time = time.time()
     for k in range(NUM_SHARDS):
         print(f"\nTraining shard {k} with strategy: {strategy}")
         model = build_model(model_name="resnet18", num_classes=NUM_CLASSES, pretrained=True).to(DEVICE)
@@ -119,5 +122,22 @@ def train_sisa(strategy="union"):
             os.makedirs(ckpt_dir, exist_ok=True)
             torch.save(model.state_dict(), os.path.join(ckpt_dir, f"slice_{r}.pt"))
 
+    # ---- stop counting time
+    end_time = time.time()
+    elapsed = end_time - start_time
+    elapsed_str = time.strftime("%H:%M:%S", time.gmtime(elapsed))
+    print(f"\nTotal training time: {elapsed_str}")
+
+    # --- Save training log
+    with open(f"sisa_{strategy}_training_log_{MODEL_NAME}.txt", "w") as f:
+        f.write(f"Model: {MODEL_NAME}\n")
+        f.write(f"Shards: {NUM_SHARDS}\n")
+        f.write(f"Slices: {NUM_SLICES}\n")
+        f.write(f"Training strategy: {strategy}\n")
+        f.write(f"Epochs/slice: {NUM_EPOCHS_PER_SLICE}\n")
+        f.write(f"Total time: {elapsed:.2f} seconds ({elapsed_str})\n")
+
     print("\n Done. All shard/slice models trained and saved")
+
+train_sisa(strategy="union")
 

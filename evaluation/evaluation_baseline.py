@@ -8,7 +8,7 @@ from utils.utils import map_indices, get_transform
 from architecture.model import build_model
 
 # --- Load config
-with open("../utils/config.json") as f:
+with open("utils/config.json") as f:
     cfg = json.load(f)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -19,7 +19,7 @@ BATCH_SIZE = cfg["batch_size"]
 MODEL_NAME = cfg["model_name"]
 
 # --- Load test IDs
-with open("../checkpoints/test_indices.json") as f:
+with open("checkpoints/test_indices.json") as f:
     test_ids = json.load(f)
 
 # --- Load dataset
@@ -36,7 +36,7 @@ test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
 # --- Load baseline model
 model = build_model(model_name=cfg["model_name"], num_classes=NUM_CLASSES, pretrained=False)
-model.load_state_dict(torch.load("../checkpoints/monolith_non_sisa/final_model.pt"))
+model.load_state_dict(torch.load(f"checkpoints/monolith_non_sisa/final_model_{MODEL_NAME}.pt"))
 model.to(DEVICE)
 model.eval()
 
@@ -63,4 +63,11 @@ print(f"Baseline Test Accuracy: {acc:.4f}")
 
 # Per-class results
 print("\nPer-Class Performance:\n")
-print(classification_report(all_labels.numpy(), all_preds.numpy(), target_names=dataset.classes))
+report = classification_report(all_labels.numpy(), all_preds.numpy(), target_names=dataset.classes)
+print(report)
+
+# --- Save evaluation log
+with open(f"evaluation_log_monolith_non_sisa_{MODEL_NAME}.txt", "w") as f:
+    f.write(f"Model: {MODEL_NAME}\n")
+    f.write(f"Test accuracy: {acc:.4f}\n")
+    f.write(f"Per-Class Performance: {report}\n")
