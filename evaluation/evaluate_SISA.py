@@ -138,6 +138,10 @@ def aggregate_predictions(shard_outputs, validation_loader, models, path, strate
         preds = torch.stack([p.argmax(dim=1) for p in shard_outputs])  # [num_shards, batch]
         return preds.gather(0, best_shards.unsqueeze(0)).squeeze(0)
 
+    elif strategy == "median":  # the median of the outputs is considered
+        med_probs, _ = torch.stack(shard_outputs).median(dim=0)
+        return med_probs.argmax(dim=1)
+
     else:
         raise NotImplementedError(f"Strategy '{strategy}' is not implemented.")
 
