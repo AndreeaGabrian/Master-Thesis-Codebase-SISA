@@ -22,19 +22,32 @@ DATA_DIR = cfg["data_dir"]
 NUM_CLASSES = cfg["num_classes"]
 NUM_SHARDS = cfg["num_shards"]
 NUM_SLICES = cfg["num_slices"]
+DATASET_NAME = cfg["dataset_name"]
 SEED = 42
 set_seed(SEED)
+OUTPUT_DIR = cfg["output_dir"]
 
 
 def get_image_ids(indices, dataset):
     ids = []
-    for i in indices:
-        img_path, _ = dataset.imgs[i]
-        basename = os.path.basename(img_path)         # "ISIC_0027419.jpg"
-        name, _ = os.path.splitext(basename)          # "ISIC_0027419"
-        num_str = name.split('_')[-1]                 # "0027419"
-        img_id = int(num_str)                         # 27419
-        ids.append(img_id)
+    if DATASET_NAME == "ham":
+        for i in indices:
+            img_path, _ = dataset.imgs[i]
+            basename = os.path.basename(img_path)  # "ISIC_0027419.jpg"
+            name, _ = os.path.splitext(basename)  # "ISIC_0027419"
+            num_str = name.split('_')[-1]  # "0027419"
+            img_id = int(num_str)  # 27419
+            ids.append(img_id)
+
+    elif DATASET_NAME in ["pathmnist", "organamnist"]:
+        for i in indices:
+            img_path, _ = dataset.imgs[i]
+            basename = os.path.basename(img_path)  # "0027419.jpg"
+            name, _ = os.path.splitext(basename)   # "0027419"
+            img_id = int(name)  # 27419
+            ids.append(img_id)
+    else:
+        raise NameError(f"Dataset name: {DATASET_NAME} is not known")
     return ids
 
 
@@ -71,12 +84,12 @@ def split_train_test_validation(dataset):
 
 def save_splits_to_file(train_ids, test_ids, val_ids):
     # Save split indices
-    os.makedirs("checkpoints", exist_ok=True)
-    with open("checkpoints/train_indices.json", "w") as f:
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    with open(OUTPUT_DIR + "/train_indices.json", "w") as f:
         json.dump(train_ids, f)
-    with open("checkpoints/test_indices.json", "w") as f:
+    with open(OUTPUT_DIR + "/test_indices.json", "w") as f:
         json.dump(test_ids, f)
-    with open("checkpoints/validation_indices.json", "w") as f:
+    with open(OUTPUT_DIR + "/validation_indices.json", "w") as f:
         json.dump(val_ids, f)
 
 
@@ -124,8 +137,8 @@ def distribute_data_random_build_shard_slice(dataset, train_indices, train_label
         shards.append(slices)
 
     # Save the mapping for the unlearning step
-    os.makedirs("checkpoints", exist_ok=True)
-    with open(f"checkpoints/{output_path}", "w") as f:
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    with open(OUTPUT_DIR + f"/{output_path}", "w") as f:
         json.dump(idx_to_loc, f)
     print(f"Created {NUM_SHARDS} shards each with {NUM_SLICES} slices at checkpoints/{output_path}.")
 

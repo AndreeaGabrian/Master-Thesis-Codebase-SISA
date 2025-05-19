@@ -21,6 +21,8 @@ print("Using device:", DEVICE)
 
 # paths & SISA params
 DATA_DIR = cfg["data_dir"]
+OUTPUT_DIR = cfg["output_dir"]
+DATASET_NAME = cfg["dataset_name"]
 NUM_CLASSES = cfg["num_classes"]
 NUM_SHARDS = cfg["num_shards"]
 NUM_SLICES = cfg["num_slices"]
@@ -40,7 +42,7 @@ set_seed(SEED)
 
 def load_train_data():
     # Load idx_to_loc
-    with open("checkpoints/idx_to_loc_train.json") as f:
+    with open(OUTPUT_DIR + "/idx_to_loc_train.json") as f:
         idx_to_loc = json.load(f)
 
     dataset = transform_and_load_dataset(DATA_DIR)
@@ -118,7 +120,7 @@ def train_sisa(strategy="union"):
                 print(f"Epoch {epoch + 1}/{NUM_EPOCHS_PER_SLICE} → Loss: {avg_loss:.4f}")
 
             # Save checkpoint
-            ckpt_dir = f"checkpoints/shard_{k}"
+            ckpt_dir = OUTPUT_DIR + f"/shard_{k}"
             os.makedirs(ckpt_dir, exist_ok=True)
             torch.save(model.state_dict(), os.path.join(ckpt_dir, f"slice_{r}.pt"))
 
@@ -129,8 +131,9 @@ def train_sisa(strategy="union"):
     print(f"\nTotal training time: {elapsed_str}")
 
     # --- Save training log
-    with open(f"sisa_{strategy}_training_log_{MODEL_NAME}.txt", "w") as f:
+    with open(f"sisa_{strategy}_training_log_{MODEL_NAME}_{DATASET_NAME}.txt", "w") as f:
         f.write(f"Model: {MODEL_NAME}\n")
+        f.write(f"Dataset: {DATASET_NAME}")
         f.write(f"Shards: {NUM_SHARDS}\n")
         f.write(f"Slices: {NUM_SLICES}\n")
         f.write(f"Training strategy: {strategy}\n")
