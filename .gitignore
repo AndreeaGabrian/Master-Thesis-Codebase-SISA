@@ -1,5 +1,6 @@
 /raw
 /checkpoints
+/checkpoints_ham
 /data
 /.idea
 __pycache__

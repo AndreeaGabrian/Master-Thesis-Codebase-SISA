@@ -56,9 +56,13 @@ def make_shard_slice_groups(idx_to_loc, dataset):
 
     for i, (path, _) in enumerate(dataset.imgs):
         basename = os.path.basename(path)
-        img_id = int(os.path.splitext(basename)[0].split('_')[-1])
+        if DATASET_NAME == "ham":
+            img_id = int(os.path.splitext(basename)[0].split('_')[-1])
+        else:
+            img_id = int(os.path.splitext(basename)[0])
+
         if str(img_id) in idx_to_loc:
-            k, r, c = idx_to_loc[str(img_id)]
+            k, r, c, prob = idx_to_loc[str(img_id)]
             groups[(k, r)].append(i)
 
     return groups
