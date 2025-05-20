@@ -8,25 +8,41 @@ import torch.optim as optim
 from architecture.model import build_model
 from utils.utils import map_indices, get_transform
 from torchvision import datasets, transforms
+import random
+
+with open("utils/config.json") as f:
+    cfg = json.load(f)
+
+OUTPUT_DIR = cfg["output_dir"]
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+NUM_CLASSES = cfg["num_classes"]
+NUM_SLICES = cfg["num_slices"]
+NUM_EPOCHS_PER_SLICE = cfg["num_epochs_per_slice"]
+LEARNING_RATE = cfg["learning_rate"]
+BATCH_SIZE = cfg["batch_size"]
 
 
-def unlearn(dataset, images=None, config_path="../utils/config.json", idx_to_loc_path="../checkpoints/idx_to_loc_train.json"):
+def random_select_image_to_unlearn(percentage, train_indices_filename):
+    """
+    Randomly selects a percentage of the training images to be unlearnt. E.g. 5% of the images (randomly selected)
+    :param train_indices_filename: the file with the ids of training images
+    :param percentage: How many images to unlearn. Float between 0 and 1
+    :return: a list with the IDs of the images to unlearn
+    """
+    with open(train_indices_filename, 'r') as f:
+        training_img_ids = json.load(f)
+    n = int(len(training_img_ids) * percentage)
+    unlearning_ids = random.sample(training_img_ids, n)  # randomly sample n elements without repetition
+    return unlearning_ids
+
+
+def unlearn(dataset, images=None, idx_to_loc_path= OUTPUT_DIR + "/idx_to_loc_train.json"):
     """
     Unlearn a specific image or a bach of images
     Parameters:
     - dataset: torchvision.datasets.ImageFolder with the full dataset loaded.
     - images: list of image IDs to unlearn
     """
-
-    with open(config_path) as f:
-        cfg = json.load(f)
-
-    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    NUM_CLASSES = cfg["num_classes"]
-    NUM_SLICES = cfg["num_slices"]
-    NUM_EPOCHS_PER_SLICE = cfg["num_epochs_per_slice"]
-    LEARNING_RATE = cfg["learning_rate"]
-    BATCH_SIZE = cfg["batch_size"]
 
     # Load current image ID - (shard, slice) map
     with open(idx_to_loc_path) as f:
@@ -74,7 +90,7 @@ def unlearn(dataset, images=None, config_path="../utils/config.json", idx_to_loc
 
         # load checkpoint before min_r
         if min_r > 0:
-            ckpt_path = f"../checkpoints/shard_{shard_k}/slice_{min_r - 1}.pt"
+            ckpt_path = OUTPUT_DIR + f"/shard_{shard_k}/slice_{min_r - 1}.pt"
             model.load_state_dict(torch.load(ckpt_path))
             print(f"Loaded checkpoint {ckpt_path}")
         else:
@@ -93,7 +109,7 @@ def unlearn(dataset, images=None, config_path="../utils/config.json", idx_to_loc
                     loss.backward()
                     optimizer.step()
             # save checkpoint
-            out_ckpt = f"../checkpoints/shard_{shard_k}/slice_{r}.pt"
+            out_ckpt = OUTPUT_DIR + f"/shard_{shard_k}/slice_{r}.pt"
             torch.save(model.state_dict(), out_ckpt)
             print(f"Updated checkpoint: {out_ckpt}")
 
@@ -110,7 +126,7 @@ def unlearn(dataset, images=None, config_path="../utils/config.json", idx_to_loc
 
 # load full dataset
 transform = get_transform()
-dataset = datasets.ImageFolder("../data/HAM10000", transform=transform)
+dataset = datasets.ImageFolder("data/HAM10000", transform=transform)
 
 # test nlearn a single image
 # print("Test 1")

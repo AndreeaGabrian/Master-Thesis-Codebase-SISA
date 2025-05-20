@@ -1,0 +1,6 @@
+Model: resnet18
+Shards: 5
+Slices: 3
+Training strategy: union
+Epochs/slice: 3
+Total time: 504.60 seconds (00:08:24)
