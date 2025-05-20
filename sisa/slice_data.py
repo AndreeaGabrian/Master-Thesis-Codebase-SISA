@@ -1,11 +1,14 @@
 import json
 import os
+from collections import Counter
+
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import Subset
 from utils.utils import set_seed
 from sklearn.model_selection import StratifiedKFold
 from utils.utils import transform_and_load_dataset
+import numpy as np
 
 # Read config file
 with open("utils/config.json") as f:
@@ -93,14 +96,106 @@ def save_splits_to_file(train_ids, test_ids, val_ids):
         json.dump(val_ids, f)
 
 
-def distribute_data_random_build_shard_slice(dataset, train_indices, train_labels, output_path):
+def save_distribution(idx_to_loc, output_path):
+    rounded_idx_to_loc = {
+        k: v[:3] + [round(v[3], 2)] if v[3] is not None else v
+        for k, v in idx_to_loc.items()
+    }
+    # Save the mapping for the unlearning step
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    with open(OUTPUT_DIR + f"/{output_path}", "w") as f:
+        json.dump(rounded_idx_to_loc, f)
+    print(f"Created {NUM_SHARDS} shards each with {NUM_SLICES} slices at checkpoints/{output_path}.")
+
+
+def distribute_data_slice_aware(train_indices, train_labels, unlearning_probs, output_path):
+    """
+    Each image is randomly assigned to a shard. Whiting each shard, samples are sorted by unlearning probability.
+    Imgs with lower probability are placed into earlier slices, higher probabilities in later slices
+    :param train_indices: list of img ids for training
+    :param train_labels:  list of corresponding labels
+    :param unlearning_probs: dictionary where (key:value) = (img_id: unlearning probability)
+    :param output_path: name of the output file
+    :return: None
+    """
+    idx_to_loc = {}
+
+    # use StratifiedKFold to split into shards
+    skf = StratifiedKFold(n_splits=NUM_SHARDS, shuffle=True, random_state=SEED)
+    for k, (_, shard_idx) in enumerate(skf.split(train_indices, train_labels)):
+        shard_indices = [train_indices[i] for i in shard_idx]
+        # Sort shard samples by unlearning score (low to high)
+        sorted_positions = sorted(range(len(shard_indices)), key=lambda i: unlearning_probs[shard_indices[i]])
+        sorted_shard_indices = [shard_indices[i] for i in sorted_positions]
+
+        slice_size = len(sorted_shard_indices) // NUM_SLICES
+
+        for r in range(NUM_SLICES):
+            start = r * slice_size
+            end = (r + 1) * slice_size if r < NUM_SLICES - 1 else len(sorted_shard_indices)
+            slice_indices = sorted_shard_indices[start:end]
+
+            for idx in slice_indices:  # idx is already the int id of the image
+                rel_idx = train_indices.index(idx)  # position in train_labels
+                label = train_labels[rel_idx]
+                unlearning_prob = unlearning_probs[idx]
+                idx_to_loc[idx] = [k, r, label, unlearning_prob]
+
+    save_distribution(idx_to_loc, output_path)
+
+
+def distribute_data_shard_aware(train_indices, train_labels, unlearning_probs, output_path):
+    """
+    Images are sorted by unlearning likelihood, then assigned to shards based on the likelihood.
+    Within each shard, samples are split randomly into slices
+    :param train_indices: list of img ids for training
+    :param train_labels:  list of corresponding labels
+    :param unlearning_probs: dictionary where (key:value) = (img_id: unlearning probability)
+    :param output_path: name of the output file
+    :return: None
+    """
+    idx_to_loc = {}
+
+    # Sort samples by unlearning likelihood
+    sorted_positions = sorted(range(len(train_indices)), key=lambda i: unlearning_probs[train_indices[i]])
+    sorted_ids = [train_indices[i] for i in sorted_positions]  # sorted dataset indices
+
+    # Assign lowest-likelihood samples to shard 0, highest to shard K-1
+    per_shard = len(sorted_ids) // NUM_SHARDS
+    shard_groups = [sorted_ids[i * per_shard:(i + 1) * per_shard] for i in range(NUM_SHARDS)]
+
+    for k, shard_indices in enumerate(shard_groups):
+        np.random.shuffle(shard_indices)  # random within shard
+        slice_size = len(shard_indices) // NUM_SLICES
+
+        for r in range(NUM_SLICES):
+            start = r * slice_size
+            end = (r + 1) * slice_size if r < NUM_SLICES - 1 else len(shard_indices)
+            slice_indices = shard_indices[start:end]
+
+            for idx in slice_indices:
+                rel_idx = train_indices.index(idx)              # get position in train_indices
+                label = train_labels[rel_idx]                   # get label at that position
+                unlearning_prob = unlearning_probs[idx]         # idx is dataset index
+                idx_to_loc[idx] = [k, r, label, unlearning_prob]
+
+    save_distribution(idx_to_loc, output_path)
+
+
+def distribute_data_random_build_shard_slice(train_indices, train_labels, output_path):
+    """
+    Randomly assign each image to a shard and slice
+    :param train_indices: list of img ids for training
+    :param train_labels:  list of corresponding labels
+    :param output_path: name of the output file
+    :return: None
+    :return:
+    """
     # do SISA shard/slice processing only on training set
     # Data structures to hold:
     #  - shards[k] = list of Subset objects (one Subset per slice)
     #  - idx_to_loc[i] = (shard_k, slice_r) for every global index i
 
-    # train_labels = [labels[i] for i in train_indices]
-    shards = []
     idx_to_loc = {}
 
     # StratifiedKFold to split indices into NUM_SHARDS folds
@@ -112,29 +207,17 @@ def distribute_data_random_build_shard_slice(dataset, train_indices, train_label
 
     # this places each sample in a slice and a shard
     for k, (_, shard_idx) in enumerate(skf.split(train_indices, train_labels)):
-        # Convert shard_idx into actual global indices
-        shard_global_indices = [train_indices[i] for i in shard_idx]
-        shard = Subset(dataset, shard_global_indices)
+        slice_size = len(shard_idx) // NUM_SLICES
 
-        slice_size = len(shard) // NUM_SLICES
-        slices = []
         for r in range(NUM_SLICES):
             start = r * slice_size
-            end = (r + 1) * slice_size if r < NUM_SLICES - 1 else len(shard)
-            sub = Subset(shard, list(range(start, end)))
-            slices.append(sub)
+            end = (r + 1) * slice_size if r < NUM_SLICES - 1 else len(shard_idx)
+            sub_indices = shard_idx[start:end]  # these are positions in train_indices
 
-            for local_pos in range(start, end):
-                global_idx = shard.indices[local_pos]
-                img_path, label = dataset.imgs[global_idx]  # get class label here
-                basename = os.path.basename(img_path)
-                name, _ = os.path.splitext(basename)
-                num_str = name.split('_')[-1]
-                img_id = int(num_str)
-
-                idx_to_loc[img_id] = [k, r, label]
-
-        shards.append(slices)
+            for i in sub_indices:
+                global_idx = train_indices[i]  # actual dataset index
+                label = train_labels[i]  # aligned index
+                idx_to_loc[global_idx] = [k, r, label, None]
 
     # Save the mapping for the unlearning step
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -143,7 +226,32 @@ def distribute_data_random_build_shard_slice(dataset, train_indices, train_label
     print(f"Created {NUM_SHARDS} shards each with {NUM_SLICES} slices at checkpoints/{output_path}.")
 
 
-def run_split():
+def get_unlearning_probabilities(strategy, train_indices, train_labels):
+    unlearning_probs = {}
+    if strategy == "random":
+        unlearning_probs = {idx: float(np.random.rand()) for idx in train_indices}
+    elif strategy in ["majority", "minority"]:
+        # count class frequencies
+        class_counts = Counter(train_labels)
+        max_count = max(class_counts.values())
+        # min_count = min(class_counts.values())
+
+        if strategy == "minority":
+            # higher unlearning prob for rarer classes
+            unlearning_probs = {
+                idx: 1.0 - (class_counts[train_labels[i]] / max_count)
+                for i, idx in enumerate(train_indices)
+            }
+        else:
+            # higher unlearning prob for more common (majority) classes
+            unlearning_probs = {
+                idx: (class_counts[train_labels[i]] / max(class_counts.values()))
+                for i, idx in enumerate(train_indices)
+            }
+    return unlearning_probs
+
+
+def run_split(strategy):
     # load the full ImageFolder
     dataset = transform_and_load_dataset(DATA_DIR)
     # split data intro train, test, validation
@@ -151,7 +259,14 @@ def run_split():
     # save indices
     save_splits_to_file(train_ids, test_ids, val_ids)
     # build shards and slices and fill them with data
-    output_path = f"idx_to_loc_train_k={NUM_SHARDS}_r={NUM_SLICES}.json"
-    distribute_data_random_build_shard_slice(dataset, train_ids, train_labels, output_path)
+    output_path = f"idx_to_loc_train_k={NUM_SHARDS}_r={NUM_SLICES}_new_slice_aware.json"
+    unlearning_probs = get_unlearning_probabilities("random", train_ids, train_labels)
+    if strategy == "random":
+        distribute_data_random_build_shard_slice(train_ids, train_labels, output_path)
+    if strategy == "shard-aware":
+        distribute_data_shard_aware(train_ids, train_labels, unlearning_probs, output_path)
+    if strategy == "slice-aware":
+        distribute_data_slice_aware(train_ids,train_labels,unlearning_probs,output_path)
+run_split("slice-aware")
 
 
