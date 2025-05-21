@@ -259,7 +259,7 @@ def run_split(strategy):
     # save indices
     save_splits_to_file(train_ids, test_ids, val_ids)
     # build shards and slices and fill them with data
-    output_path = f"idx_to_loc_train_k={NUM_SHARDS}_r={NUM_SLICES}_new_slice_aware.json"
+    output_path = f"idx_to_loc_train_k={NUM_SHARDS}_r={NUM_SLICES}.json"
     unlearning_probs = get_unlearning_probabilities("random", train_ids, train_labels)
     if strategy == "random":
         distribute_data_random_build_shard_slice(train_ids, train_labels, output_path)
@@ -267,6 +267,6 @@ def run_split(strategy):
         distribute_data_shard_aware(train_ids, train_labels, unlearning_probs, output_path)
     if strategy == "slice-aware":
         distribute_data_slice_aware(train_ids,train_labels,unlearning_probs,output_path)
-run_split("slice-aware")
+run_split("random")
 
 

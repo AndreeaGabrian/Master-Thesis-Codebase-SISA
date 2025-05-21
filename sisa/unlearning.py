@@ -6,11 +6,15 @@ from torch.utils.data import Subset, DataLoader
 import torch.nn as nn
 import torch.optim as optim
 from architecture.model import build_model
+from evaluation.evaluate_SISA import evaluate_sisa
 from utils.utils import map_indices, get_transform
 from torchvision import datasets, transforms
 import random
+from utils.utils import get_path
 
-with open("utils/config.json") as f:
+
+config_path = get_path("utils", "config.json")
+with open(config_path) as f:
     cfg = json.load(f)
 
 OUTPUT_DIR = cfg["output_dir"]
@@ -20,6 +24,7 @@ NUM_SLICES = cfg["num_slices"]
 NUM_EPOCHS_PER_SLICE = cfg["num_epochs_per_slice"]
 LEARNING_RATE = cfg["learning_rate"]
 BATCH_SIZE = cfg["batch_size"]
+training_strategy = cfg["training_strategy"]
 
 
 def random_select_image_to_unlearn(percentage, train_indices_filename):
@@ -29,14 +34,14 @@ def random_select_image_to_unlearn(percentage, train_indices_filename):
     :param percentage: How many images to unlearn. Float between 0 and 1
     :return: a list with the IDs of the images to unlearn
     """
-    with open(train_indices_filename, 'r') as f:
+    with open(get_path(train_indices_filename), 'r') as f:
         training_img_ids = json.load(f)
     n = int(len(training_img_ids) * percentage)
     unlearning_ids = random.sample(training_img_ids, n)  # randomly sample n elements without repetition
     return unlearning_ids
 
 
-def unlearn(dataset, images=None, idx_to_loc_path= OUTPUT_DIR + "/idx_to_loc_train.json"):
+def unlearn(dataset, images=None, idx_to_loc_path= OUTPUT_DIR + "/idx_to_loc_train_k=5_r=3.json"):
     """
     Unlearn a specific image or a bach of images
     Parameters:
@@ -45,7 +50,7 @@ def unlearn(dataset, images=None, idx_to_loc_path= OUTPUT_DIR + "/idx_to_loc_tra
     """
 
     # Load current image ID - (shard, slice) map
-    with open(idx_to_loc_path) as f:
+    with open(get_path(idx_to_loc_path)) as f:
         idx_to_loc = json.load(f)
 
     # map image id to dataset index
@@ -53,12 +58,12 @@ def unlearn(dataset, images=None, idx_to_loc_path= OUTPUT_DIR + "/idx_to_loc_tra
 
     # determine what to unlearn
     remove_ids = set()
-    affected_shards = defaultdict(set)
+    affected_shards = defaultdict(set)  # a dict where the key is the affected shard and the values are the slices that contain unlearning points
 
     if images:  # if images is not None, thus we unlearn just one img for a bach
         for img_id in images:
             if str(img_id) in idx_to_loc:
-                shard_k, slice_r, label = idx_to_loc[str(img_id)]
+                shard_k, slice_r, label, prob = idx_to_loc[str(img_id)]
                 remove_ids.add(img_id)
                 affected_shards[shard_k].add(slice_r)
 
@@ -75,7 +80,7 @@ def unlearn(dataset, images=None, idx_to_loc_path= OUTPUT_DIR + "/idx_to_loc_tra
 
         # rebuild slices
         slices = [[] for _ in range(NUM_SLICES)]
-        for img_str, (k, r, l) in idx_to_loc.items():
+        for img_str, (k, r, l, p) in idx_to_loc.items():
             img_id = int(img_str)
             if k == shard_k and img_id not in remove_ids:
                 slices[r].append(id_to_idx[img_id])
@@ -90,7 +95,7 @@ def unlearn(dataset, images=None, idx_to_loc_path= OUTPUT_DIR + "/idx_to_loc_tra
 
         # load checkpoint before min_r
         if min_r > 0:
-            ckpt_path = OUTPUT_DIR + f"/shard_{shard_k}/slice_{min_r - 1}.pt"
+            ckpt_path = get_path(OUTPUT_DIR + f"/{training_strategy}/shard_{shard_k}/slice_{min_r - 1}.pt")
             model.load_state_dict(torch.load(ckpt_path))
             print(f"Loaded checkpoint {ckpt_path}")
         else:
@@ -109,7 +114,7 @@ def unlearn(dataset, images=None, idx_to_loc_path= OUTPUT_DIR + "/idx_to_loc_tra
                     loss.backward()
                     optimizer.step()
             # save checkpoint
-            out_ckpt = OUTPUT_DIR + f"/shard_{shard_k}/slice_{r}.pt"
+            out_ckpt = get_path(OUTPUT_DIR + f"/{training_strategy}/shard_{shard_k}/slice_{r}.pt")
             torch.save(model.state_dict(), out_ckpt)
             print(f"Updated checkpoint: {out_ckpt}")
 
@@ -117,21 +122,57 @@ def unlearn(dataset, images=None, idx_to_loc_path= OUTPUT_DIR + "/idx_to_loc_tra
     for img_id in remove_ids:
         idx_to_loc.pop(str(img_id), None)
 
-    with open(idx_to_loc_path, "w") as f:
+    with open(get_path(idx_to_loc_path), "w") as f:
         json.dump(idx_to_loc, f, indent=2)
     print(f"\n Unlearning ended. Updated {idx_to_loc_path}")
 
 
+from copy import deepcopy
+
+
+def progressive_unlearning_and_evaluation(dataset, train_indices_filename, eval_fn, steps=[0.05, 0.10, 0.15]):
+    """
+    Progressively unlearn dataset and evaluate after each step.
+
+    :param dataset: The full torchvision dataset
+    :param train_indices_filename: Path to training indices JSON file
+    :param eval_fn: Evaluation function to call after unlearning
+    :param steps: List of cumulative unlearning percentages
+    """
+    print("==== Progressive Unlearning and Evaluation ====")
+
+    # select the full unlearning set
+    with open(get_path(train_indices_filename), 'r') as f:
+        all_train_ids = json.load(f)
+
+    full_unlearn_count = int(steps[-1] * len(all_train_ids))
+    full_unlearn_ids = random.sample(all_train_ids, full_unlearn_count)
+
+    previous_ids = set()
+    for percent in steps:
+        current_count = int(percent * len(all_train_ids))
+        current_ids = set(full_unlearn_ids[:current_count])
+        new_ids = list(current_ids - previous_ids)
+        print(f"Unlearning {percent * 100:.0f}% ({len(new_ids)} images)")
+
+        # Unlearn images
+        unlearn(dataset, images=new_ids)
+
+        # Evaluate model performance
+        print(f"Evaluating after {percent * 100:.0f}% unlearning")
+        eval_fn((True, percent))
+
+        # Track which images we've already unlearned
+        previous_ids = current_ids
 
 
 # load full dataset
 transform = get_transform()
-dataset = datasets.ImageFolder("data/HAM10000", transform=transform)
+dataset = datasets.ImageFolder(get_path("data", "HAM10000"), transform=transform)
 
-# test nlearn a single image
-# print("Test 1")
-# unlearn(dataset, images=[32125])
-#
-# print("Test 2")
-# # test unlearn multiple images
-# unlearn(dataset, images=[29737, 26419, 33498, 26455])
+progressive_unlearning_and_evaluation(
+    dataset=dataset,
+    train_indices_filename=OUTPUT_DIR + "/train_indices.json",
+    eval_fn=lambda x: evaluate_sisa(x),  # evaluation function
+    steps=[0.05, 0.10, 0.15]
+)

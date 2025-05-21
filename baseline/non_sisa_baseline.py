@@ -19,6 +19,8 @@ print("Using device:", DEVICE)
 
 DATA_DIR = cfg["data_dir"]
 NUM_CLASSES = cfg["num_classes"]
+NUM_SHARDS = cfg["num_shards"]
+NUM_SLICES = cfg["num_slices"]
 OUTPUT_DIR = cfg["output_dir"]
 DATASET_NAME = cfg["dataset_name"]
 BATCH_SIZE = cfg["batch_size"]
@@ -34,7 +36,7 @@ SEED = 42
 set_seed(SEED)
 
 # --- Load train IDs
-with open(OUTPUT_DIR + "/train_indices.json") as f:
+with open(OUTPUT_DIR + f"/train_indices.json") as f:
     train_ids = json.load(f)
 
 # --- Load dataset
@@ -89,7 +91,7 @@ print(f"Monolithic non-sisa model saved to {OUTPUT_DIR}/monolith_non_sisa/final_
 # --- Save training log
 with open(OUTPUT_DIR + f"/monolith_non_sisa/training_log_{MODEL_NAME}.txt", "w") as f:
     f.write(f"Model: {MODEL_NAME}\n")
-    f.write(f"Dataset: {DATASET_NAME}")
+    f.write(f"Dataset: {DATASET_NAME}\n")
     f.write(f"Epochs: {TOTAL_EPOCHS}\n")
     f.write(f"Samples: {len(train_dataset)}\n")
     f.write(f"Total time: {elapsed:.2f} seconds ({elapsed_str})\n")
