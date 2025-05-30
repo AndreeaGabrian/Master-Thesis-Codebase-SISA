@@ -1,5 +1,4 @@
 import json
-
 import numpy as np
 import torch
 from sklearn.preprocessing import label_binarize
@@ -357,10 +356,10 @@ def evaluate_sisa(unlearning: (bool, float)):
     validation_loader, test_loader, models = load_test_data_and_models(dataset)
     # inference
     path = "idx_to_loc_train_k=5_r=3.json"  # I should be careful with this path
-    # s = ["soft", "majority", "median", "weighted-shards-dist","confidence-max","weighted-shards-acc"]
-    s = ["weighted-shards-f1-class"]
+    s = ["soft", "majority", "median", "weighted-shards-dist","confidence-max","weighted-shards-acc", "weighted-shards-f1-macro", "weighted-shards-f1-class"]
+    # s = ["soft"]
     for agg_strategy in s:
         print(f"Inference for agg strategy: {agg_strategy}")
         do_inference(dataset, models, test_loader, validation_loader, path, unlearning, strategy=agg_strategy)
 
-evaluate_sisa((True,0.05))
+# evaluate_sisa((False, 0.05))
