@@ -1,7 +1,12 @@
 import json
 import os
+import random
 from collections import Counter
-
+import seaborn as sns
+import pandas as pd
+import matplotlib
+matplotlib.use('TkAgg')
+from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import Subset
@@ -42,7 +47,7 @@ def get_image_ids(indices, dataset):
             img_id = int(num_str)  # 27419
             ids.append(img_id)
 
-    elif DATASET_NAME in ["pathmnist", "organamnist"]:
+    elif DATASET_NAME in ["path", "organ"]:
         for i in indices:
             img_path, _ = dataset.imgs[i]
             basename = os.path.basename(img_path)  # "0027419.jpg"
@@ -101,6 +106,12 @@ def save_distribution(idx_to_loc, output_path):
         k: v[:3] + [round(v[3], 2)] if v[3] is not None else v
         for k, v in idx_to_loc.items()
     }
+
+    train_prob_indices = [(k, v[2], v[3]) for k, v in idx_to_loc.items()]
+    # Save (idx, unlearning_prob) to a JSON file
+    with open(f"{OUTPUT_DIR}/train_class_prob_indices.json", 'w') as json_file:
+        json.dump(train_prob_indices, json_file)
+
     # Save the mapping for the unlearning step
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     with open(OUTPUT_DIR + f"/{output_path}", "w") as f:
@@ -192,9 +203,8 @@ def distribute_data_random_build_shard_slice(train_indices, train_labels, output
     :return:
     """
     # do SISA shard/slice processing only on training set
-    # Data structures to hold:
-    #  - shards[k] = list of Subset objects (one Subset per slice)
-    #  - idx_to_loc[i] = (shard_k, slice_r) for every global index i
+    # shards[k] = list of Subset objects (one Subset per slice)
+    # idx_to_loc[i] = (shard_k, slice_r) for every global index i
 
     idx_to_loc = {}
 
@@ -217,13 +227,11 @@ def distribute_data_random_build_shard_slice(train_indices, train_labels, output
             for i in sub_indices:
                 global_idx = train_indices[i]  # actual dataset index
                 label = train_labels[i]  # aligned index
-                idx_to_loc[global_idx] = [k, r, label, None]
+                idx_to_loc[global_idx] = [k, r, label, round(random.uniform(0, 1), 2)]
 
     # Save the mapping for the unlearning step
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    with open(OUTPUT_DIR + f"/{output_path}", "w") as f:
-        json.dump(idx_to_loc, f)
-    print(f"Created {NUM_SHARDS} shards each with {NUM_SLICES} slices at checkpoints/{output_path}.")
+    save_distribution(idx_to_loc, output_path)
+    print(f"Created {NUM_SHARDS} shards each with {NUM_SLICES} slices at checkpoints/{output_path} with random distribution.")
 
 
 def get_unlearning_probabilities(strategy, train_indices, train_labels):
@@ -251,6 +259,47 @@ def get_unlearning_probabilities(strategy, train_indices, train_labels):
     return unlearning_probs
 
 
+def visualize_idx_to_loc(filename, strategy):
+    # Load idx_to_loc from JSON file
+    with open(OUTPUT_DIR + "/" + filename, 'r') as f:
+        idx_to_loc = json.load(f)
+
+    # Convert to DataFrame
+    data = [
+        {
+            'idx': int(k),
+            'shard': v[0],
+            'slice': v[1],
+            'label': v[2],
+            'unlearning_prob': v[3]
+        }
+        for k, v in idx_to_loc.items()
+    ]
+
+    df = pd.DataFrame(data)
+
+    # Create side-by-side heatmaps
+    fig, axs = plt.subplots(1, 2, figsize=(20, 8))
+
+    # Class distribution heatmap
+    class_pivot = df.pivot_table(index=['shard', 'slice'], columns='label', aggfunc='size', fill_value=0)
+    sns.heatmap(class_pivot, annot=True, fmt='d', cmap='YlGnBu', ax=axs[0])
+    axs[0].set_title('Class Distribution per Shard-Slice')
+    axs[0].set_xlabel('Class Label')
+    axs[0].set_ylabel('Shard - Slice')
+
+    # Unlearning probability heatmap (filter out nulls)
+    df_filtered = df[df['unlearning_prob'].notnull()]
+    prob_pivot = df_filtered.groupby(['shard', 'slice'])['unlearning_prob'].mean().unstack()
+    sns.heatmap(prob_pivot, annot=True, fmt=".3f", cmap="coolwarm", ax=axs[1])
+    axs[1].set_title('Average Unlearning Probability per Shard-Slice')
+    axs[1].set_xlabel('Slice')
+    axs[1].set_ylabel('Shard')
+
+    plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/{filename}_distribution_data_{strategy}.png")
+
+
 def run_split(strategy):
     # load the full ImageFolder
     dataset = transform_and_load_dataset(DATA_DIR)
@@ -259,14 +308,17 @@ def run_split(strategy):
     # save indices
     save_splits_to_file(train_ids, test_ids, val_ids)
     # build shards and slices and fill them with data
-    output_path = f"idx_to_loc_train_k={NUM_SHARDS}_r={NUM_SLICES}_new_slice_aware.json"
-    unlearning_probs = get_unlearning_probabilities("random", train_ids, train_labels)
+    output_path = f"idx_to_loc_train_k={NUM_SHARDS}_r={NUM_SLICES}.json"
+    unlearning_probs = get_unlearning_probabilities("minority", train_ids, train_labels)
     if strategy == "random":
         distribute_data_random_build_shard_slice(train_ids, train_labels, output_path)
     if strategy == "shard-aware":
         distribute_data_shard_aware(train_ids, train_labels, unlearning_probs, output_path)
     if strategy == "slice-aware":
         distribute_data_slice_aware(train_ids,train_labels,unlearning_probs,output_path)
-run_split("slice-aware")
 
+    visualize_idx_to_loc(output_path, strategy)
+
+run_split("slice-aware")
+# visualize_idx_to_loc("idx_to_loc_train_k=5_r=3.json", "shard-aware")
 

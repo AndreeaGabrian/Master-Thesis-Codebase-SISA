@@ -3,6 +3,15 @@ import random
 import numpy as np
 import torch
 from torchvision import datasets, transforms
+from pathlib import Path
+
+
+def get_project_root():
+    return Path(__file__).resolve().parents[1]
+
+
+def get_path(*parts):
+    return get_project_root().joinpath(*parts)
 
 
 def set_seed(seed):
