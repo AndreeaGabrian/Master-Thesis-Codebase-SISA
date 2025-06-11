@@ -262,15 +262,16 @@ def progressive_unlearning_and_evaluation_shard_aware(dataset, train_indices_fil
 
 
 # load full dataset
-transform = get_transform()
-dataset = datasets.ImageFolder(get_path("data", "HAM10000"), transform=transform)
+# transform = get_transform()
+# dataset = datasets.ImageFolder(get_path("data", "HAM10000"), transform=transform)
 
-progressive_unlearning_and_evaluation(
-    dataset=dataset,
-    train_indices_filename=OUTPUT_DIR + "/train_class_prob_indices.json",
-    eval_fn=lambda x: evaluate_sisa(x),  # evaluation function
-    steps=[0.05, 0.10, 0.15]
-)
+# To be uncommented if you want to run this file
+# progressive_unlearning_and_evaluation(
+#     dataset=dataset,
+#     train_indices_filename=OUTPUT_DIR + "/train_class_prob_indices.json",
+#     eval_fn=lambda x: evaluate_sisa(x),  # evaluation function
+#     steps=[0.05, 0.10, 0.15]
+# )
 
 # progressive_unlearning_and_evaluation_shard_aware(
 #     dataset=dataset,

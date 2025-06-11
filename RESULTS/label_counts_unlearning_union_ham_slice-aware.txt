@@ -1,0 +1,7 @@
+Label/class 5: 703
+Label/class 4: 116
+Label/class 2: 115
+Label/class 1: 53
+Label/class 0: 34
+Label/class 6: 14
+Label/class 3: 12

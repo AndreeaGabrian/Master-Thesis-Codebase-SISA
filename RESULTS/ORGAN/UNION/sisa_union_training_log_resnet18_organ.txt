@@ -1,0 +1,6 @@
+Model: resnet18
+Dataset: organShards: 5
+Slices: 3
+Training strategy: union
+Epochs/slice: 3
+Total time: 1231.66 seconds (00:20:31)

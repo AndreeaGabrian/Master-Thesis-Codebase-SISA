@@ -319,6 +319,6 @@ def run_split(strategy):
 
     visualize_idx_to_loc(output_path, strategy)
 
-run_split("slice-aware")
+# run_split("random")
 # visualize_idx_to_loc("idx_to_loc_train_k=5_r=3.json", "shard-aware")
 

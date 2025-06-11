@@ -158,21 +158,19 @@ def get_f1_weights_validation(
         if mode == "macro":
             f1 = f1_score(all_labels.numpy(), all_preds.numpy(), average="macro", zero_division=0)
             shard_f1s[k] = max(f1, epsilon)
-            # print(f"Shard {k} macro F1: {f1:.4f}")
         elif mode == "per-class":
             f1_per_class = f1_score(all_labels.numpy(), all_preds.numpy(), average=None, zero_division=0)
             shard_f1s[k] = f1_per_class.tolist()
             num_classes = len(f1_per_class)
-            # print(f"Shard {k} per-class F1: {f1_per_class}")
         else:
             raise ValueError(f"Unsupported mode '{mode}'. Use 'macro' or 'per-class'.")
 
-    # If macro mode, normalize scalar F1s across shards
+    # If macro mode normalize scalar F1s across shards
     if mode == "macro":
         total_f1 = sum(shard_f1s.values())
         return {k: f1 / total_f1 for k, f1 in shard_f1s.items()}
 
-    # If per-class mode, build weight matrix
+    # If per-class mode build weight matrix
     weight_matrix = {k: [0.0] * num_classes for k in shard_keys}
     for c in range(num_classes):
         f1s = np.array([shard_f1s[k][c] for k in shard_keys])
@@ -357,7 +355,6 @@ def evaluate_sisa(unlearning: (bool, float)):
     # inference
     path = "idx_to_loc_train_k=5_r=3.json"  # I should be careful with this path
     s = ["soft", "majority", "median", "weighted-shards-dist","confidence-max","weighted-shards-acc", "weighted-shards-f1-macro", "weighted-shards-f1-class"]
-    # s = ["soft"]
     for agg_strategy in s:
         print(f"Inference for agg strategy: {agg_strategy}")
         do_inference(dataset, models, test_loader, validation_loader, path, unlearning, strategy=agg_strategy)
