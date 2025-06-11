@@ -1,0 +1,41 @@
+Model: resnet18
+Dataset name: organ
+Num shards: 5
+Num slices: 3
+Aggregation strategy: 3
+Data distribution: random
+-------------------------------------
+Overall Test accuracy: 0.9225
+Per-Class Performance Metrics:               precision    recall  f1-score   support
+
+           0       0.95      0.88      0.91       391
+           1       0.80      0.92      0.86       278
+          10       0.86      0.91      0.89       713
+           2       0.93      0.79      0.86       271
+           3       0.99      0.97      0.98       295
+           4       0.87      0.79      0.83       793
+           5       0.83      0.83      0.83       763
+           6       0.98      0.99      0.99      1233
+           7       0.99      1.00      0.99       784
+           8       1.00      0.98      0.99       786
+           9       0.90      0.97      0.93       606
+
+    accuracy                           0.92      6913
+   macro avg       0.92      0.91      0.91      6913
+weighted avg       0.92      0.92      0.92      6913
+
+-------------------------------------
+Macro AUC: 0.995383668845103
+Micro AUC: 0.9969501043208822
+AUC for class 0: 0.9912
+AUC for class 1: 0.9960
+AUC for class 10: 0.9939
+AUC for class 2: 0.9986
+AUC for class 3: 0.9999
+AUC for class 4: 0.9849
+AUC for class 5: 0.9864
+AUC for class 6: 0.9998
+AUC for class 7: 0.9998
+AUC for class 8: 1.0000
+AUC for class 9: 0.9987
+Unlearning: True, step 0.15

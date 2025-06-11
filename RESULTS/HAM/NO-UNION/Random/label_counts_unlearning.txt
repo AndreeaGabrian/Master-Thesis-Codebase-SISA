@@ -1,0 +1,11 @@
+Label/class 4: 154
+Label/class 2: 373
+Label/class 8: 411
+Label/class 9: 412
+Label/class 6: 400
+Label/class 10: 318
+Label/class 5: 416
+Label/class 3: 142
+Label/class 7: 647
+Label/class 0: 205
+Label/class 1: 145

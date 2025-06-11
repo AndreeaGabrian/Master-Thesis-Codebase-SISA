@@ -1,0 +1,33 @@
+Model: resnet18
+Test accuracy: 0.9981
+Per-Class Performance:               precision    recall  f1-score   support
+
+           0       1.00      0.99      1.00       391
+           1       0.98      1.00      0.99       278
+          10       1.00      1.00      1.00       713
+           2       1.00      0.99      0.99       271
+           3       1.00      1.00      1.00       295
+           4       1.00      0.99      1.00       793
+           5       0.99      1.00      0.99       763
+           6       1.00      1.00      1.00      1233
+           7       1.00      1.00      1.00       784
+           8       1.00      1.00      1.00       786
+           9       1.00      1.00      1.00       606
+
+    accuracy                           0.9981    6913
+   macro avg       1.00      1.00      1.00      6913
+weighted avg       1.00      1.00      1.00      6913
+
+Macro AUC: 0.9999802406091934
+Micro AUC: 0.9999888448460375
+AUC for class 0: 1.0000
+AUC for class 1: 1.0000
+AUC for class 10: 1.0000
+AUC for class 2: 1.0000
+AUC for class 3: 1.0000
+AUC for class 4: 0.9999
+AUC for class 5: 0.9999
+AUC for class 6: 1.0000
+AUC for class 7: 1.0000
+AUC for class 8: 1.0000
+AUC for class 9: 1.0000

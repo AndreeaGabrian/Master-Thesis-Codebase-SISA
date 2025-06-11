@@ -1,0 +1,37 @@
+Model: resnet18
+Dataset name: path
+Num shards: 5
+Num slices: 3
+Aggregation strategy: 3
+Data distribution: random
+-------------------------------------
+Overall Test accuracy: 0.9059
+Per-Class Performance Metrics:               precision    recall  f1-score   support
+
+           0       0.99      0.93      0.96      1874
+           1       0.92      1.00      0.96      1902
+           2       0.75      0.96      0.84      2072
+           3       0.97      0.99      0.98      2080
+           4       0.89      0.95      0.92      1601
+           5       0.97      0.80      0.88      2437
+           6       0.96      0.86      0.91      1577
+           7       0.78      0.82      0.80      1880
+           8       0.97      0.88      0.92      2577
+
+    accuracy                           0.91     18000
+   macro avg       0.91      0.91      0.91     18000
+weighted avg       0.91      0.91      0.91     18000
+
+-------------------------------------
+Macro AUC: 0.9947387495961334
+Micro AUC: 0.9945493804012344
+AUC for class 0: 0.9997
+AUC for class 1: 0.9998
+AUC for class 2: 0.9905
+AUC for class 3: 0.9998
+AUC for class 4: 0.9941
+AUC for class 5: 0.9945
+AUC for class 6: 0.9972
+AUC for class 7: 0.9818
+AUC for class 8: 0.9953
+Unlearning: True, step 0.1

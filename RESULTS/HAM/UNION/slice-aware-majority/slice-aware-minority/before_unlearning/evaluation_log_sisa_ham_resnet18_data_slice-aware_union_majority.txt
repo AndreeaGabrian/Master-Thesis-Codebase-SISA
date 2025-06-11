@@ -1,0 +1,32 @@
+Model: resnet18
+Dataset name: ham
+Num shards: 5
+Num slices: 3
+Aggregation strategy: 3
+Data distribution: slice-aware
+-------------------------------------
+Overall Test accuracy: 0.8054
+Per-Class Performance Metrics:               precision    recall  f1-score   support
+
+       akiec       0.83      0.38      0.53        65
+         bcc       0.58      0.79      0.67       103
+         bkl       0.61      0.61      0.61       220
+          df       0.75      0.14      0.23        22
+         mel       0.68      0.32      0.43       223
+          nv       0.86      0.95      0.91      1342
+        vasc       0.90      0.62      0.73        29
+
+    accuracy                           0.81      2004
+   macro avg       0.75      0.54      0.59      2004
+weighted avg       0.80      0.81      0.79      2004
+
+-------------------------------------
+Macro AUC: None
+Micro AUC: None
+AUC for class akiec: None
+AUC for class bcc: None
+AUC for class bkl: None
+AUC for class df: None
+AUC for class mel: None
+AUC for class nv: None
+AUC for class vasc: None

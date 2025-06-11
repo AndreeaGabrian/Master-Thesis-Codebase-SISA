@@ -4,3 +4,8 @@
 /data
 /.idea
 __pycache__
+/checkpoints_path
+/checkpoints_organ
+/checkpoints_organ_prob
+/checkpoints_ham_prob
+/APP_UI/UI_models

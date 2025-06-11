@@ -1,0 +1,6 @@
+Model: resnet18
+Dataset: pathShards: 5
+Slices: 3
+Training strategy: union
+Epochs/slice: 3
+Total time: 2638.75 seconds (00:43:58)

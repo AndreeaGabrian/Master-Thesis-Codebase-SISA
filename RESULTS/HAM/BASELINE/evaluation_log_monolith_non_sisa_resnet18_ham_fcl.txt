@@ -1,0 +1,25 @@
+Model: resnet18
+Test accuracy: 0.8388
+Per-Class Performance:               precision    recall  f1-score   support
+
+       akiec       0.70      0.71      0.70        65
+         bcc       0.87      0.52      0.65       103
+         bkl       0.63      0.73      0.68       220
+          df       0.82      0.41      0.55        22
+         mel       0.65      0.53      0.58       223
+          nv       0.91      0.95      0.93      1342
+        vasc       0.88      0.72      0.79        29
+
+    accuracy                           0.84      2004
+   macro avg       0.78      0.65      0.70      2004
+weighted avg       0.84      0.84      0.83      2004
+
+Macro AUC: 0.9650327777293588
+Micro AUC: 0.9824800249799802
+AUC for class akiec: 0.9866
+AUC for class bcc: 0.9809
+AUC for class bkl: 0.9405
+AUC for class df: 0.9827
+AUC for class mel: 0.9251
+AUC for class nv: 0.9551
+AUC for class vasc: 0.9844

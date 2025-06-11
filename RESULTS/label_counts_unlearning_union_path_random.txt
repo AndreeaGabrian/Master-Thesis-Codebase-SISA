@@ -1,0 +1,9 @@
+Label/class 8: 1352
+Label/class 4: 840
+Label/class 1: 998
+Label/class 7: 987
+Label/class 6: 827
+Label/class 2: 1087
+Label/class 3: 1092
+Label/class 5: 1278
+Label/class 0: 983

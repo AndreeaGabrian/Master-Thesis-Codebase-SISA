@@ -1,0 +1,7 @@
+Model: resnet18
+Dataset: ham
+Shards: 5
+Slices: 3
+Training strategy: union
+Epochs/slice: 3
+Total time: 501.56 seconds (00:08:21)
