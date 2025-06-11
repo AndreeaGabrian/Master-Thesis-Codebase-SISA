@@ -148,7 +148,7 @@ def train_sisa(strategy="union"):
     print("\n Done. All shard/slice models trained and saved")
 
 
-train_sisa(strategy=training_strategy)
+# train_sisa(strategy=training_strategy)
 
 
 
