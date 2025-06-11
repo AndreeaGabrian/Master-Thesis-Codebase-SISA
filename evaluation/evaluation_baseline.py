@@ -82,7 +82,7 @@ auc_micro = roc_auc_score(y_true, y_scores, average="micro", multi_class="ovr")
 class_aucs = roc_auc_score(y_true, y_scores, average=None, multi_class="ovr")
 
 # --- Save evaluation log
-with open(f"evaluation_log_monolith_non_sisa_{MODEL_NAME}_{DATASET_NAME}.txt", "w") as f:
+with open(f"evaluation_log_monolith_non_sisa_{MODEL_NAME}_{DATASET_NAME}_CE.txt", "w") as f:
     f.write(f"Model: {MODEL_NAME}\n")
     f.write(f"Test accuracy: {acc:.4f}\n")
     f.write(f"Per-Class Performance: {report}\n")

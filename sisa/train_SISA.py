@@ -31,6 +31,7 @@ NUM_SLICES = cfg["num_slices"]
 BATCH_SIZE = cfg["batch_size"]
 NUM_EPOCHS_PER_SLICE = cfg["num_epochs_per_slice"]
 LEARNING_RATE = cfg["learning_rate"]
+training_strategy = cfg["training_strategy"]
 
 # model
 MODEL_NAME = cfg["model_name"]
@@ -42,7 +43,7 @@ set_seed(SEED)
 
 def load_train_data():
     # Load idx_to_loc
-    with open(OUTPUT_DIR + "/idx_to_loc_train.json") as f:
+    with open(OUTPUT_DIR + f"/idx_to_loc_train_k={NUM_SHARDS}_r={NUM_SLICES}.json") as f:
         idx_to_loc = json.load(f)
 
     dataset = transform_and_load_dataset(DATA_DIR)
@@ -124,7 +125,7 @@ def train_sisa(strategy="union"):
                 print(f"Epoch {epoch + 1}/{NUM_EPOCHS_PER_SLICE} → Loss: {avg_loss:.4f}")
 
             # Save checkpoint
-            ckpt_dir = OUTPUT_DIR + f"/shard_{k}"
+            ckpt_dir = OUTPUT_DIR + f"/{training_strategy}/shard_{k}"
             os.makedirs(ckpt_dir, exist_ok=True)
             torch.save(model.state_dict(), os.path.join(ckpt_dir, f"slice_{r}.pt"))
 
@@ -146,5 +147,8 @@ def train_sisa(strategy="union"):
 
     print("\n Done. All shard/slice models trained and saved")
 
-train_sisa(strategy="union")
+
+train_sisa(strategy=training_strategy)
+
+
 

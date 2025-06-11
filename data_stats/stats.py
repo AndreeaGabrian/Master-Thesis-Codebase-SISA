@@ -12,7 +12,7 @@ from utils.utils import map_indices, get_transform
 # Load dataset again (if needed)
 transform = get_transform()
 
-DATA_DIR = "../data/HAM10000"
+DATA_DIR = "../data/path_mnist"
 dataset = datasets.ImageFolder(DATA_DIR, transform=transform)
 
 # dataset.imgs is a list of (filepath, class_idx)
@@ -39,7 +39,32 @@ full_class_names = {
     'nv': "Melanocytic nevi",
     'vasc': "Vascular lesions"
 }
-full_names = [full_class_names[c] for c in class_names]
+organmnist_classes = {
+    '0': "Adrenal gland",
+    '1': "Bladder",
+    '2': "Brain",
+    '3': "Breast",
+    '4': "Esophagus",
+    '5': "Eye",
+    '6': "Kidney",
+    '7': "Liver",
+    '8': "Lung",
+    '9': "Ovary",
+    '10': "Pancreas"
+}
+pathmnist_labels = {
+    '0': "Adipose",
+    '1': "Background",
+    '2': "Debris",
+    '3': "Lymphocytes",
+    '4': "Mucus",
+    '5': "Smooth muscle",
+    '6': "Normal colon mucosa",
+    '7': "Cancer-associated stroma",
+    '8': "Colorectal adenocarcinoma epithelium"
+}
+
+full_names = [pathmnist_labels[c] for c in class_names]
 
 plt.figure(figsize=(10,6))
 bars = plt.bar(full_names, counts, color="skyblue")
@@ -49,23 +74,23 @@ for bar in bars:
     plt.text(bar.get_x() + bar.get_width()/2.0, yval + 15, int(yval), ha='center', va='bottom', fontsize=8)
 
 plt.xlabel("Class")
-plt.ylabel("Number of Samples")
-plt.title("Samples per Class in HAM10000")
+plt.ylabel("Number of samples")
+plt.title("Samples per class in pathMNIST dataset")
 plt.xticks(rotation=45)
 plt.grid(axis="y")
 plt.tight_layout()
-plt.savefig("data-class-distribution.png")
+plt.savefig("data-class-distribution_path.png")
 plt.clf()
 
 # -------------------- stats per train and test sets ----------------
 # Map img_id - dataset index
 id_to_idx = map_indices(dataset)
 # Load train/test IDs
-with open("../checkpoints/train_indices.json") as f:
+with open("../checkpoints_path/train_indices.json") as f:
     train_ids = json.load(f)
-with open("../checkpoints/test_indices.json") as f:
+with open("../checkpoints_path/test_indices.json") as f:
     test_ids = json.load(f)
-with open("../checkpoints/validation_indices.json") as f:
+with open("../checkpoints_path/validation_indices.json") as f:
     val_ids = json.load(f)
 
 # Map IDs back to dataset indices
@@ -109,11 +134,11 @@ for bar in bar1 + bar2 + bar3:
     plt.text(bar.get_x() + bar.get_width()/2.0, yval + 15, int(yval), ha='center', va='bottom', fontsize=8)
 
 
-plt.ylabel("Number of Samples")
+plt.ylabel("Number of samples")
 plt.xlabel("Classes")
-plt.title("Train vs Test vs Validation Sample Distribution per Class")
+plt.title("Train vs Test vs Validation sample distribution per class for pathMNIST dataset")
 plt.xticks(x, full_names, rotation=45)
 plt.legend()
 plt.grid(axis="y")
 plt.tight_layout()
-plt.savefig("val-test-train-data-class-distribution.png")
+plt.savefig("val-test-train-data-class-distribution_path.png")
